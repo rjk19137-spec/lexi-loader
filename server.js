@@ -332,7 +332,6 @@ app.get('/', (req, res) => {
     </html>
     `);
 });
-
 app.post('/api/login', (req, res) => {
     let { username, password } = req.body;
     let db = readDB();
