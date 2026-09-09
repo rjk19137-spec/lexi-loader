@@ -1,0 +1,92 @@
+{
+  "settings": {
+    "panelName": "Lexi Loader",
+    "panelVersion": "V4.5",
+    "loaderStatus": true,
+    "maintenanceMessage": "Loader is temporarily under maintenance.",
+    "supportUrl": "",
+    "theme": "dark",
+    "sessionTimeoutHours": 24,
+    "passwordResetLimit": 3,
+    "passwordResetWindowHours": 24,
+    "optionalIpLock": false,
+    "optionalGeoLock": false
+  },
+
+  "pricing": {
+    "3h": {
+      "label": "3 Hours",
+      "hours": 3,
+      "price": 10
+    },
+    "1d": {
+      "label": "1 Day",
+      "hours": 24,
+      "price": 100
+    },
+    "3d": {
+      "label": "3 Days",
+      "hours": 72,
+      "price": 200
+    },
+    "7d": {
+      "label": "7 Days",
+      "hours": 168,
+      "price": 350
+    },
+    "15d": {
+      "label": "15 Days",
+      "hours": 360,
+      "price": 500
+    },
+    "30d": {
+      "label": "30 Days",
+      "hours": 720,
+      "price": 750
+    },
+    "60d": {
+      "label": "60 Days",
+      "hours": 1440,
+      "price": 1000
+    }
+  },
+
+  "users": [
+    {
+      "id": "USR-OWNER-001",
+      "username": "owner",
+      "passwordHash": "",
+      "role": "owner",
+      "status": "active",
+      "balance": 0,
+      "parentId": null,
+      "referralCode": null,
+      "resetCount": 0,
+      "resetWindowStartedAt": null,
+      "createdAt": null,
+      "lastLoginAt": null
+    }
+  ],
+
+  "referrals": [],
+
+  "keys": [],
+
+  "devices": [],
+
+  "sessions": [],
+
+  "transactions": [],
+
+  "auditLogs": [],
+
+  "counters": {
+    "user": 1,
+    "referral": 0,
+    "key": 0,
+    "device": 0,
+    "transaction": 0,
+    "audit": 0,
+    "session": 0
+  }
+}
