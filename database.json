@@ -2,6 +2,7 @@
   "settings": {
     "panelName": "Lexi Loader",
     "panelVersion": "V4.5",
+    "loaderName": "Lexi Loader V4.5 AIM",
     "loaderStatus": true,
     "maintenanceMessage": "Loader is temporarily under maintenance.",
     "supportUrl": "",
@@ -9,10 +10,13 @@
     "sessionTimeoutHours": 24,
     "passwordResetLimit": 3,
     "passwordResetWindowHours": 24,
+    "deviceResetLimit": 3,
+    "deviceResetWindowHours": 24,
     "optionalIpLock": false,
-    "optionalGeoLock": false
+    "optionalGeoLock": false,
+    "serverCountry": "",
+    "serverRegion": ""
   },
-
   "pricing": {
     "3h": {
       "label": "3 Hours",
@@ -50,38 +54,15 @@
       "price": 1000
     }
   },
-
-  "users": [
-    {
-      "id": "USR-OWNER-001",
-      "username": "owner",
-      "passwordHash": "",
-      "role": "owner",
-      "status": "active",
-      "balance": 0,
-      "parentId": null,
-      "referralCode": null,
-      "resetCount": 0,
-      "resetWindowStartedAt": null,
-      "createdAt": null,
-      "lastLoginAt": null
-    }
-  ],
-
+  "users": [],
   "referrals": [],
-
   "keys": [],
-
   "devices": [],
-
   "sessions": [],
-
   "transactions": [],
-
   "auditLogs": [],
-
   "counters": {
-    "user": 1,
+    "user": 0,
     "referral": 0,
     "key": 0,
     "device": 0,
