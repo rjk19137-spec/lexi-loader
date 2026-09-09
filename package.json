@@ -1,7 +1,7 @@
 {
   "name": "lexi-loader",
   "version": "1.0.0",
-  "description": "Lexi Loader Reseller Panel and License API",
+  "description": "Lexi Loader Reseller Panel and Loader License API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
