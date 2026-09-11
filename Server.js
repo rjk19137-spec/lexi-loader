@@ -1,326 +1,197 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const path = require('path');
-require('dotenv').config();
+const express = require("express");
+const mongoose = require("mongoose");
+const crypto = require("crypto");
+const cors = require("cors");
+const path = require("path");
+require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public'))); // Static HTML files
+// 🔌 MongoDB Connection
+mongoose.connect(process.env.MONGO_URI || "mongodb://localhost:27017/lexi_loader_db", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => console.log("✅ MongoDB Connected"))
+  .catch(err => console.error("❌ MongoDB Error:", err));
 
-// MongoDB Connection
-const MONGO_URI = process.env.MONGO_URI;
-
-if (!MONGO_URI) {
-    console.error("❌ Please add MONGO_URI to your .env file");
-} else {
-    mongoose.connect(MONGO_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    })
-        .then(() => console.log("✅ Connected to MongoDB Atlas"))
-        .catch(err => console.error("❌ MongoDB Connection Error:", err));
-}
-
-// Schema Definition
+// 📦 Mongoose Models (Schemas for Old Features)
 const UserSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    role: { type: String, enum: ['admin', 'reseller'], default: 'reseller' },
+    isBanned: { type: Boolean, default: false },
+    balance: { type: Number, default: 0 },
+    referralCode: { type: String, unique: true, sparse: true },
+    referredBy: { type: String, default: null },
+    createdAt: { type: Date, default: Date.now }
+});
+
+const LicenseSchema = new mongoose.Schema({
+    username: { type: String, required: true },
+    password: { type: String, required: true },
     expiry: { type: Date, required: true },
-    isActive: { type: Boolean, default: true }
+    deviceLocked: { type: Boolean, default: false },
+    usedDevices: [{ type: String, default: [] }]
 });
 
-const AdminSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
-    password: { type: String, required: true }
+const DeviceSchema = new mongoose.Schema({
+    username: { type: String, required: true },
+    deviceId: { type: String, required: true },
+    firstSeen: { type: Date, default: Date.now }
 });
 
-const User = mongoose.model('User', UserSchema);
-const Admin = mongoose.model('Admin', AdminSchema);
+const AuditLogSchema = new mongoose.Schema({
+    action: { type: String, required: true },
+    user: { type: String, required: true },
+    details: { type: String, default: "" },
+    timestamp: { type: Date, default: Date.now }
+});
 
-// Route: Check User Access
-app.post('/api/check', async (req, res) => {
-    const { username, password } = req.body;
+const ReferralSchema = new mongoose.Schema({
+    referrer: { type: String, required: true },
+    user: { type: String, required: true },
+    amount: { type: Number, default: 0 },
+    timestamp: { type: Date, default: Date.now }
+});
 
+const User = mongoose.model("User", UserSchema);
+const License = mongoose.model("License", LicenseSchema);
+const Device = mongoose.model("Device", DeviceSchema);
+const AuditLog = mongoose.model("AuditLog", AuditLogSchema);
+const Referral = mongoose.model("Referral", ReferralSchema);
+
+// 🧹 Helper Functions
+const generateLicense = () => crypto.randomBytes(16).toString("hex");
+const generateReferralCode = () => crypto.randomBytes(8).toString("hex").toUpperCase();
+
+// Middleware
+app.use(express.json());
+app.use(cors());
+app.use(express.static(path.join(__dirname, "public")));
+
+// 🔐 Login Route
+app.post("/login", async (req, res) => {
     try {
+        const { username, password } = req.body;
         const user = await User.findOne({ username, password });
-
-        if (!user) {
-            return res.json({ status: 'invalid' });
-        }
-
-        if (user.expiry < new Date()) {
-            return res.json({ status: 'expired' });
-        }
-
-        if (!user.isActive) {
-            return res.json({ status: 'revoked' });
-        }
-
-        res.json({ status: 'active' });
-    } catch (err) {
-        res.json({ status: 'error', message: err.message });
-    }
+        if (!user) return res.status(401).json({ success: false, message: "Invalid credentials" });
+        if (user.isBanned) return res.status(403).json({ success: false, message: "Account banned" });
+        
+        // Log login
+        new AuditLog({ action: "User Login", user: username }).save();
+        
+        res.json({ 
+            success: true, 
+            user: { username: user.username, role: user.role, balance: user.balance } 
+        });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 
-// Route: Admin Login
-app.post('/api/admin/login', async (req, res) => {
-    const { username, password } = req.body;
-
+// 👤 Register Route (With Referral)
+app.post("/register", async (req, res) => {
     try {
-        const admin = await Admin.findOne({ username, password });
-
-        if (admin) {
-            res.json({
-                success: true,
-                message: "Login Successful"
-            });
-        } else {
-            res.json({
-                success: false,
-                message: "Invalid Credentials"
-            });
+        const { username, password, role, referralCode } = req.body;
+        if (await User.findOne({ username })) return res.status(400).json({ success: false, message: "User exists" });
+        
+        let referredBy = null;
+        let referrerBonus = 0;
+        
+        if (referralCode) {
+            const referrer = await User.findOne({ referralCode });
+            if (!referrer) return res.status(400).json({ success: false, message: "Invalid referral code" });
+            referredBy = referrer.username;
+            referrerBonus = 10; // Example bonus
         }
-    } catch (err) {
-        res.json({
-            success: false,
-            message: err.message
+
+        const newUser = new User({ 
+            username, 
+            password, 
+            role, 
+            referralCode: generateReferralCode(), 
+            referredBy 
         });
-    }
-});
-
-// Route: Create User (Admin Only)
-app.post('/api/admin/create', async (req, res) => {
-    const { username, password, days } = req.body;
-
-    try {
-        const expiryDate = new Date();
-        expiryDate.setDate(expiryDate.getDate() + parseInt(days));
-
-        const newUser = new User({
-            username,
-            password,
-            expiry: expiryDate
-        });
-
         await newUser.save();
 
-        res.json({
-            success: true,
-            message: "User Created"
-        });
-    } catch (err) {
-        res.json({
-            success: false,
-            message: err.message
-        });
-    }
-});
-
-// Route: Get All Users (Admin Only)
-app.get('/api/admin/users', async (req, res) => {
-    try {
-        const users = await User.find({});
-        res.json(users);
-    } catch (err) {
-        res.json({ error: err.message });
-    }
-});
-
-// Route: Revoke User (Admin Only)
-app.post('/api/admin/revoke', async (req, res) => {
-    const { username } = req.body;
-
-    try {
-        await User.findOneAndUpdate(
-            { username },
-            { isActive: false }
-        );
-
-        res.json({
-            success: true,
-            message: "User Revoked"
-        });
-    } catch (err) {
-        res.json({
-            success: false,
-            message: err.message
-        });
-    }
-});
-
-// Route: Serve Admin Panel
-app.get('/admin', async (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
-// Start Server
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
-
-
-<!-- ==================== public/admin.html ==================== -->
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lexi Admin</title>
-
-    <style>
-        body {
-            font-family: sans-serif;
-            padding: 20px;
-            background: #1a1a1a;
-            color: white;
-        }
-
-        input,
-        button {
-            padding: 10px;
-            margin: 5px 0;
-            width: 100%;
-        }
-
-        button {
-            background: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        #status {
-            margin-top: 20px;
-            padding: 10px;
-            background: #333;
-        }
-
-        #users-list {
-            margin-top: 20px;
-        }
-    </style>
-</head>
-
-<body>
-    <h2>🔒 Admin Login</h2>
-
-    <input type="text" id="adminUser" placeholder="Username">
-    <input type="password" id="adminPass" placeholder="Password">
-
-    <button onclick="login()">Login</button>
-
-    <div id="panel" style="display:none;">
-        <h3>Create User</h3>
-
-        <input type="text" id="newUser" placeholder="Username">
-        <input type="password" id="newPass" placeholder="Password">
-        <input type="number" id="days" placeholder="Days (e.g., 30)">
-
-        <button onclick="createUser()">Create</button>
-
-        <h3>Users List</h3>
-
-        <button onclick="fetchUsers()">Refresh List</button>
-
-        <div id="users-list"></div>
-    </div>
-
-    <script>
-        async function login() {
-            const u = document.getElementById('adminUser').value;
-            const p = document.getElementById('adminPass').value;
-
-            const res = await fetch('/api/admin/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    username: u,
-                    password: p
-                })
-            });
-
-            const data = await res.json();
-
-            if (data.success) {
-                document.getElementById('panel').style.display = 'block';
-                fetchUsers();
-            } else {
-                alert('Invalid Admin Credentials');
+        if (referredBy) {
+            const refUser = await User.findOne({ username: referredBy });
+            if (refUser) {
+                refUser.balance += referrerBonus;
+                await refUser.save();
+                new Referral({ referrer: referredBy, user: username, amount: referrerBonus }).save();
             }
         }
 
-        async function createUser() {
-            const u = document.getElementById('newUser').value;
-            const p = document.getElementById('newPass').value;
-            const d = document.getElementById('days').value;
+        new AuditLog({ action: "User Registered", user: username }).save();
+        res.json({ success: true, user: newUser });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
 
-            const res = await fetch('/api/admin/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    username: u,
-                    password: p,
-                    days: d
-                })
-            });
+// 🎟️ Generate License
+app.post("/generate-license", async (req, res) => {
+    try {
+        const { username, password, days } = req.body;
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + parseInt(days));
 
-            const data = await res.json();
+        const newLicense = new License({ username, password, expiry });
+        await newLicense.save();
+        new AuditLog({ action: "License Created", user: username, details: `Expires: ${expiry}` }).save();
+        res.json({ success: true, license: newLicense });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
 
-            alert(data.message);
-            fetchUsers();
+// 🚫 Revoke License
+app.post("/revoke-license", async (req, res) => {
+    try {
+        const { username } = req.body;
+        const license = await License.findOne({ username });
+        if (license) {
+            license.expiry = new Date("2020-01-01"); // Set to past to revoke
+            await license.save();
         }
+        new AuditLog({ action: "License Revoked", user: username }).save();
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
 
-        async function fetchUsers() {
-            const res = await fetch('/api/admin/users');
-            const users = await res.json();
+// 🔒 Lock Device
+app.post("/lock-device", async (req, res) => {
+    try {
+        const { username, deviceId } = req.body;
+        const license = await License.findOne({ username });
+        if (!license) return res.status(404).json({ success: false, message: "User not found" });
 
-            const list = document.getElementById('users-list');
-            list.innerHTML = '';
-
-            users.forEach(user => {
-                const div = document.createElement('div');
-
-                div.style.padding = "5px";
-                div.style.borderBottom = "1px solid #555";
-
-                div.innerHTML = `
-                    <strong>${user.username}</strong> |
-                    Exp: ${new Date(user.expiry).toLocaleDateString()} |
-                    Status: ${user.isActive ? '✅ Active' : '❌ Revoked'}
-                    <button
-                        onclick="revokeUser('${user.username}')"
-                        style="width: auto; background: red;">
-                        Revoke
-                    </button>
-                `;
-
-                list.appendChild(div);
-            });
+        await Device.create({ username, deviceId });
+        
+        license.deviceLocked = true;
+        if (!license.usedDevices.includes(deviceId)) {
+            license.usedDevices.push(deviceId);
         }
+        await license.save();
+        
+        new AuditLog({ action: "Device Locked", user: username, details: deviceId }).save();
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
 
-        async function revokeUser(username) {
-            await fetch('/api/admin/revoke', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    username: username
-                })
-            });
+// 📜 Get Audit Logs
+app.get("/audit-logs", async (req, res) => {
+    try {
+        const logs = await AuditLog.find().sort({ timestamp: -1 }).limit(50);
+        res.json({ success: true, logs });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
 
-            fetchUsers();
-        }
-    </script>
-</body>
-</html>
+// 📈 Get User Stats (For Admin Panel)
+app.get("/stats", async (req, res) => {
+    try {
+        const users = await User.countDocuments();
+        const licenses = await License.countDocuments();
+        const devices = await Device.countDocuments();
+        res.json({ success: true, stats: { users, licenses, devices } });
+    } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// 🚀 Start Server
+app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
