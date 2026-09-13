@@ -1,15 +1,16 @@
 {
-  "name": "lexi-loader",
-  "version": "1.0.0",
-  "description": "Lexi Loader Reseller Panel and Loader License API",
+  "name": "lexi-loader-backend",
+  "version": "9.2.0",
+  "description": "Lexi Loader Reseller Panel & Verification Backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "engines": {
-    "node": ">=18"
-  },
   "dependencies": {
-    "express": "^4.21.2"
-  }
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "private": true
 }
