@@ -1,7 +1,7 @@
 {
-  "name": "lexi-loader-backend",
+  "name": "lexi-x-mars-backend",
   "version": "9.2.0",
-  "description": "Lexi Loader Reseller Panel & Verification Backend",
+  "description": "Lexi X Mars Reseller Panel & Verification Backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
