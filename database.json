@@ -1,73 +1,52 @@
 {
+  "version": 4,
   "settings": {
-    "panelName": "Lexi Loader",
-    "panelVersion": "V4.5",
-    "loaderName": "Lexi Loader V4.5 AIM",
     "loaderStatus": true,
-    "maintenanceMessage": "Loader is temporarily under maintenance.",
-    "supportUrl": "",
-    "theme": "dark",
+    "maintenanceMsg": "Loader is temporarily under maintenance.",
+    "panelName": "Lexi Loader V9.2",
+    "supportLink": "",
+    "ipGeoLockEnabled": false,
     "sessionTimeoutHours": 24,
-    "passwordResetLimit": 3,
-    "passwordResetWindowHours": 24,
-    "deviceResetLimit": 3,
-    "deviceResetWindowHours": 24,
-    "optionalIpLock": false,
-    "optionalGeoLock": false,
-    "serverCountry": "",
-    "serverRegion": ""
+    "resetLimit": 3,
+    "resetWindowHours": 24,
+    "systemOnline": true,
+    "onlineMessage": "System is online.",
+    "appNotice": "",
+    "appNoticeType": "info",
+    "appNoticeEnabled": false,
+    "loaderApiVersion": 1,
+    "loaderVersion": "1.0.0",
+    "loaderMinimumVersion": "1.0.0",
+    "loaderTargetPackage": "com.pubg.imobile",
+    "loaderUpdateUrl": "",
+    "loaderUpdateSha256": "",
+    "loaderUpdateSize": 0,
+    "loaderUpdateRequired": false,
+    "loaderUpdateNotes": "",
+    "loaderFeatures": {
+      "BT": true,
+      "AIM": true,
+      "ESP": true,
+      "IPAD_VIEW": true
+    },
+    "loaderFileManifests": []
   },
   "pricing": {
-    "3h": {
-      "label": "3 Hours",
-      "hours": 3,
-      "price": 10
-    },
-    "1d": {
-      "label": "1 Day",
-      "hours": 24,
-      "price": 100
-    },
-    "3d": {
-      "label": "3 Days",
-      "hours": 72,
-      "price": 200
-    },
-    "7d": {
-      "label": "7 Days",
-      "hours": 168,
-      "price": 350
-    },
-    "15d": {
-      "label": "15 Days",
-      "hours": 360,
-      "price": 500
-    },
-    "30d": {
-      "label": "30 Days",
-      "hours": 720,
-      "price": 750
-    },
-    "60d": {
-      "label": "60 Days",
-      "hours": 1440,
-      "price": 1000
-    }
+    "3h": { "label": "3 Hour", "hours": 3, "price": 10 },
+    "1d": { "label": "1 Day", "hours": 24, "price": 100 },
+    "3d": { "label": "3 Days", "hours": 72, "price": 200 },
+    "7d": { "label": "7 Days", "hours": 168, "price": 350 },
+    "15d": { "label": "15 Days", "hours": 360, "price": 500 },
+    "30d": { "label": "30 Days", "hours": 720, "price": 750 },
+    "60d": { "label": "60 Days", "hours": 1440, "price": 1000 }
   },
   "users": [],
   "referrals": [],
   "keys": [],
   "devices": [],
-  "sessions": [],
   "transactions": [],
   "auditLogs": [],
-  "counters": {
-    "user": 0,
-    "referral": 0,
-    "key": 0,
-    "device": 0,
-    "transaction": 0,
-    "audit": 0,
-    "session": 0
-  }
+  "sessions": [],
+  "loaderSessions": [],
+  "rateLimits": []
 }
